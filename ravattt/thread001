@@ -1,0 +1,209 @@
+Here’s a detailed example that integrates a video stream sensor for Simultaneous Localization and Mapping (SLAM) using a particle filter. The system dynamically persists a 3D point cloud in JSON and includes actions for controlling the four motors of a drone.
+
+
+---
+
+Example: Drone Navigation and Mapping
+
+This thread represents a system where a drone navigates an environment using SLAM, updating a 3D map, and reacting dynamically to its surroundings.
+
+Thread Definition:
+
+thread "DroneNavigationSLAM" {
+    namespace: "DroneControlNamespace"
+
+    senses {
+        "VideoStreamSensor": "captures real-time video for SLAM processing"
+        "IMUSensor": "provides inertial measurements for particle filter updates"
+    }
+
+    actions {
+        "MotorControl" {
+            description: "controls the drone motors for movement and stabilization"
+            motors: ["FrontLeft", "FrontRight", "BackLeft", "BackRight"]
+        }
+        "StabilizeDrone" {
+            description: "adjusts motors to maintain hover stability"
+            requires: ["MotorControl"]
+        }
+    }
+
+    events {
+        "ObstacleDetected" {
+            triggeredBy: "VideoStreamSensor"
+            action: "StabilizeDrone"
+        }
+    }
+
+    state "SLAMMapping" {
+        from: "Start"
+        to: "MappingComplete"
+        action: "PersistPointCloud"
+    }
+}
+
+
+---
+
+Sensor Definitions:
+
+1. Video Stream Sensor: Captures frames and extracts features for SLAM.
+
+senses {
+    "VideoStreamSensor": {
+        "source": "CameraModule",
+        "purpose": "Real-time SLAM input",
+        "data": "RGB video frames"
+    }
+}
+
+
+2. IMU Sensor:
+Provides acceleration and angular velocity for particle filter updates.
+
+senses {
+    "IMUSensor": {
+        "source": "IMU",
+        "purpose": "Particle filter support for position estimation",
+        "data": "Acceleration, Gyroscope"
+    }
+}
+
+
+
+
+---
+
+Actions:
+
+1. Motor Control:
+Dynamically adjusts motor speed for precise movement or stabilization.
+
+action "MotorControl" {
+    parameters: {
+        "FrontLeft": "Adjust thrust dynamically",
+        "FrontRight": "Adjust thrust dynamically",
+        "BackLeft": "Adjust thrust dynamically",
+        "BackRight": "Adjust thrust dynamically"
+    }
+}
+
+
+2. Stabilize Drone:
+Uses IMU data to maintain hover stability.
+
+action "StabilizeDrone" {
+    requires: ["IMUSensor"]
+    algorithm: "PID control loop"
+}
+
+
+
+
+---
+
+Event Handling:
+
+1. Obstacle Detected:
+When the video stream detects an obstacle, the drone stabilizes to avoid collisions.
+
+event "ObstacleDetected" {
+    triggeredBy: "VideoStreamSensor"
+    action: "StabilizeDrone"
+}
+
+
+
+
+---
+
+State Management:
+
+1. SLAM Mapping:
+Generates and persists a 3D point cloud of the environment.
+
+state "SLAMMapping" {
+    from: "Start"
+    to: "MappingComplete"
+    action: "PersistPointCloud"
+}
+
+
+2. PersistPointCloud Action:
+Saves the generated 3D map to a JSON file.
+
+action "PersistPointCloud" {
+    format: "JSON"
+    description: "Saves 3D point cloud to file for future use"
+    location: "/maps/pointcloud.json"
+}
+
+
+
+
+---
+
+JSON Persistence Example:
+
+During the SLAM process, the point cloud is updated dynamically and stored as:
+
+{
+  "3DPointCloud": [
+    {"x": 1.0, "y": 2.0, "z": 0.5, "color": "#FFFFFF"},
+    {"x": 1.5, "y": 2.5, "z": 0.7, "color": "#FF0000"},
+    {"x": 2.0, "y": 3.0, "z": 1.0, "color": "#00FF00"}
+  ],
+  "metadata": {
+    "timestamp": "2024-11-26T12:34:56Z",
+    "mapVersion": "1.0",
+    "sensorSources": ["VideoStreamSensor", "IMUSensor"]
+  }
+}
+
+
+---
+
+Workflow:
+
+1. Initialize Sensors:
+
+The VideoStreamSensor begins capturing frames.
+
+The IMUSensor collects motion data.
+
+
+
+2. SLAM Processing:
+
+The video stream and IMU data are fused using a particle filter to estimate the drone's position.
+
+A 3D point cloud is incrementally generated and persisted in JSON.
+
+
+
+3. Motor Actions:
+
+If obstacles are detected, the drone executes StabilizeDrone.
+
+For normal operation, MotorControl adjusts motors dynamically.
+
+
+
+4. Event Handling:
+
+Events like ObstacleDetected trigger necessary actions.
+
+
+
+5. State Transition:
+
+The system transitions from SLAMMapping to MappingComplete when the point cloud is successfully saved.
+
+
+
+
+
+---
+
+Would you like to dive deeper into any specific aspect, such as the particle filter algorithm or how the JSON persistence interacts with the RavaTTT runtime?
+
